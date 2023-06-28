@@ -69,7 +69,7 @@ async def generate_completion_response(
         rendered = messages[-1].render()
         agent = initialize_agent(tools, llm, agent=AgentType.OPENAI_MULTI_FUNCTIONS, agent_kwargs=agent_kwargs, memory=memory, verbose=True)
         reply = agent.run(input=rendered)
-        print(reply)
+        logger.info(f"Chat reply to {user} {reply[:50]}")
         if reply:
             flagged_str, blocked_str = moderate_message(
                 message=(rendered + reply)[-500:], user=user
