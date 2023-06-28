@@ -1,11 +1,10 @@
 import discord
 from discord import Message as DiscordMessage
 import logging
-from src.base import Message, Conversation
+from src.base import Message
 from src.constants import (
     BOT_INVITE_URL,
     DISCORD_BOT_TOKEN,
-    EXAMPLE_CONVOS,
     ACTIVATE_THREAD_PREFX,
     MAX_THREAD_MESSAGES,
     SECONDS_DELAY_RECEIVING_MSG,
@@ -41,15 +40,6 @@ tree = discord.app_commands.CommandTree(client)
 async def on_ready():
     logger.info(f"We have logged in as {client.user}. Invite URL: {BOT_INVITE_URL}")
     completion.MY_BOT_NAME = client.user.name
-    completion.MY_BOT_EXAMPLE_CONVOS = []
-    for c in EXAMPLE_CONVOS:
-        messages = []
-        for m in c.messages:
-            if m.user == "Lenard":
-                messages.append(Message(user=client.user.name, text=m.text))
-            else:
-                messages.append(m)
-        completion.MY_BOT_EXAMPLE_CONVOS.append(Conversation(messages=messages))
     await tree.sync()
 
 

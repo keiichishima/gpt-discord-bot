@@ -16,38 +16,7 @@ class Message:
         return result
 
 
-@dataclass
-class Conversation:
-    messages: List[Message]
-
-    def prepend(self, message: Message):
-        self.messages.insert(0, message)
-        return self
-
-    def render(self):
-        return f"\n{SEPARATOR_TOKEN}".join(
-            [message.render() for message in self.messages]
-        )
-
-
 @dataclass(frozen=True)
 class Config:
     name: str
-    instructions: str
-    example_conversations: List[Conversation]
-
-
-@dataclass(frozen=True)
-class Prompt:
-    header: Message
-    examples: List[Conversation]
-    convo: Conversation
-
-    def render(self):
-        return f"\n{SEPARATOR_TOKEN}".join(
-            [self.header.render()]
-            + [Message("System", "Example conversations:").render()]
-            + [conversation.render() for conversation in self.examples]
-            + [Message("System", "Current conversation:").render()]
-            + [self.convo.render()],
-        )
+    system_message: str
