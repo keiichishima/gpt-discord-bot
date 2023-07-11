@@ -14,7 +14,7 @@ from langchain.tools import YouTubeSearchTool
 from langchain.utilities import GoogleSearchAPIWrapper
 
 from src.base import Message
-from src.constants import BOT_NAME, SYSTEM_MESSAGE
+from src.constants import OPENAI_MODEL, BOT_NAME, SYSTEM_MESSAGE
 from src.moderation import (
     moderate_message,
     send_moderation_flagged_message,
@@ -36,7 +36,7 @@ tools = [
         description="useful for when you need to look for video clips"
     )
 ]
-llm = ChatOpenAI(temperature=0, model="gpt-3.5-turbo")
+llm = ChatOpenAI(temperature=0, model=OPENAI_MODEL)
 system_message = SystemMessage(
     content=SYSTEM_MESSAGE
 )
