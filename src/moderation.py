@@ -12,14 +12,15 @@ from src.utils import logger
 def moderate_message(
     message: str, user: str
 ) -> Tuple[str, str]:  # [flagged_str, blocked_str]
-    moderation_response = openai.Moderation.create(
+    client = openai.OpenAI()
+    moderation_response = client.moderations.create(
         input=message, model="text-moderation-latest"
     )
-    category_scores = moderation_response.results[0]["category_scores"] or {}
+    category_scores = moderation_response.results[0].category_scores or {}
 
     blocked_str = ""
     flagged_str = ""
-    for category, score in category_scores.items():
+    for category, score in category_scores:
         if score > MODERATION_VALUES_FOR_BLOCKED.get(category, 1.0):
             blocked_str += f"({category}: {score})"
             logger.info(f"blocked {user} {category} {score}")

@@ -4,23 +4,26 @@ from typing import Optional, List
 
 import discord
 
-from langchain.agents import AgentType, initialize_agent, OpenAIFunctionsAgent, Tool
-from langchain.chains import ConversationChain
-from langchain.chat_models import ChatOpenAI
-from langchain.memory import ConversationSummaryBufferMemory
-from langchain.prompts import MessagesPlaceholder
-from langchain.schema import SystemMessage
-from langchain.tools import YouTubeSearchTool
-from langchain.utilities import GoogleSearchAPIWrapper
+from langchain.agents import AgentExecutor, create_structured_chat_agent, create_react_agent, create_openai_tools_agent
+from langchain.memory import ConversationBufferWindowMemory
+from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.tools import Tool
+from langchain_community.chat_message_histories import ChatMessageHistory
+from langchain_community.tools import YouTubeSearchTool
+from langchain_google_community import GoogleSearchAPIWrapper
+from langchain_openai import ChatOpenAI
 
 from src.base import Message
-from src.constants import OPENAI_MODEL, BOT_NAME, SYSTEM_MESSAGE
+from src.constants import OPENAI_MODEL, BOT_NAME, SYSTEM_MESSAGE, HUMAN_MESSAGE
 from src.moderation import (
     moderate_message,
     send_moderation_flagged_message,
     send_moderation_blocked_message,
 )
 from src.utils import split_into_shorter_messages, close_thread, logger
+
+model = ChatOpenAI(temperature=0, model=OPENAI_MODEL)
 
 gsearch = GoogleSearchAPIWrapper()
 ytsearch = YouTubeSearchTool()
@@ -36,15 +39,25 @@ tools = [
         description="useful for when you need to look for video clips"
     )
 ]
-llm = ChatOpenAI(temperature=0, model=OPENAI_MODEL)
-system_message = SystemMessage(
-    content=SYSTEM_MESSAGE
+
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", SYSTEM_MESSAGE),
+        MessagesPlaceholder("chat_history", optional=True),
+        ("human", HUMAN_MESSAGE),
+    ]
 )
-agent_kwargs = {
-    "extra_prompt_messages": [MessagesPlaceholder(variable_name="memory")],
-    "system_message": system_message,
-}
-memory = ConversationSummaryBufferMemory(llm=llm, max_token_limt=500, memory_key="memory", return_messages=True)
+
+agent = create_structured_chat_agent(model, tools, prompt)
+memory = ConversationBufferWindowMemory(memory_key="chat_history", k=10, return_messages=True)
+agent_executor = AgentExecutor(
+    agent=agent,
+    tools=tools,
+    memory=memory,
+    max_iterations=10,
+    handle_parsing_errors=True,
+    verbose=True
+)
 
 class CompletionResult(Enum):
     OK = 0
@@ -67,8 +80,13 @@ async def generate_completion_response(
 ) -> CompletionData:
     try:
         rendered = messages[-1].render()
-        agent = initialize_agent(tools, llm, agent=AgentType.OPENAI_MULTI_FUNCTIONS, agent_kwargs=agent_kwargs, memory=memory, verbose=True)
-        reply = agent.run(input=rendered)
+        chat_history = memory.buffer_as_messages
+        reply = agent_executor.invoke(
+            {
+                "input": rendered,
+                "chat_history": chat_history
+            }
+        )['output']
         if reply:
             flagged_str, blocked_str = moderate_message(
                 message=(rendered + reply)[-500:], user=user
