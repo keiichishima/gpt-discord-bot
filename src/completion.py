@@ -49,11 +49,9 @@ prompt = ChatPromptTemplate.from_messages(
 )
 
 agent = create_structured_chat_agent(model, tools, prompt)
-memory = ConversationBufferWindowMemory(memory_key="chat_history", k=10, return_messages=True)
 agent_executor = AgentExecutor(
     agent=agent,
     tools=tools,
-    memory=memory,
     max_iterations=10,
     handle_parsing_errors=True,
     verbose=True
@@ -80,11 +78,10 @@ async def generate_completion_response(
 ) -> CompletionData:
     try:
         rendered = messages[-1].render()
-        chat_history = memory.buffer_as_messages
         reply = agent_executor.invoke(
             {
                 "input": rendered,
-                "chat_history": chat_history
+                "chat_history": [m.render() for m in messages]
             }
         )['output']
         if reply:

@@ -145,26 +145,29 @@ async def on_message(message: DiscordMessage):
 
         # ignore messages not in a thread
         channel = message.channel
-        if not isinstance(channel, discord.Thread):
-            return
+        is_thread = isinstance(channel, discord.Thread)
+        is_mentioned = client.user.mentioned_in(message)
 
         # ignore threads not created by the bot
-        thread = channel
-        if thread.owner_id != client.user.id:
-            return
+        if is_thread:
+            if channel.owner_id != client.user.id:
+                return
 
-        # ignore threads that are archived locked or title is not what we want
-        if (
-            thread.archived
-            or thread.locked
-            or not thread.name.startswith(ACTIVATE_THREAD_PREFX)
-        ):
-            # ignore this thread
-            return
+            # ignore threads that are archived locked or title is not what we want
+            if (
+                channel.archived
+                or channel.locked
+                or not channel.name.startswith(ACTIVATE_THREAD_PREFX)
+            ):
+                # ignore this thread
+                return
 
-        if thread.message_count > MAX_THREAD_MESSAGES:
-            # too many messages, no longer going to reply
-            await close_thread(thread=thread)
+            if channel.message_count > MAX_THREAD_MESSAGES:
+                # too many messages, no longer going to reply
+                await close_thread(thread=channel)
+                return
+        elif not is_mentioned:
+            # if this message is not sent to a thread and not mentioned
             return
 
         # moderate the message
@@ -180,7 +183,7 @@ async def on_message(message: DiscordMessage):
         if len(blocked_str) > 0:
             try:
                 await message.delete()
-                await thread.send(
+                await channel.send(
                     embed=discord.Embed(
                         description=f"❌ **{message.author}'s message has been deleted by moderation.**",
                         color=discord.Color.red(),
@@ -188,7 +191,7 @@ async def on_message(message: DiscordMessage):
                 )
                 return
             except Exception as e:
-                await thread.send(
+                await channel.send(
                     embed=discord.Embed(
                         description=f"❌ **{message.author}'s message has been blocked by moderation but could not be deleted. Missing Manage Messages permission in this Channel.**",
                         color=discord.Color.red(),
@@ -203,7 +206,7 @@ async def on_message(message: DiscordMessage):
             url=message.jump_url,
         )
         if len(flagged_str) > 0:
-            await thread.send(
+            await channel.send(
                 embed=discord.Embed(
                     description=f"⚠️ **{message.author}'s message has been flagged by moderation.**",
                     color=discord.Color.yellow(),
@@ -215,32 +218,32 @@ async def on_message(message: DiscordMessage):
             await asyncio.sleep(SECONDS_DELAY_RECEIVING_MSG)
             if is_last_message_stale(
                 interaction_message=message,
-                last_message=thread.last_message,
+                last_message=channel.last_message,
                 bot_id=client.user.id,
             ):
                 # there is another message, so ignore this one
                 return
 
         logger.info(
-            f"Thread message to process - {message.author}: {message.content[:50]} - {thread.name} {thread.jump_url}"
+            f"Thread message to process - {message.author}: {message.content[:50]} - {channel.name} {channel.jump_url}"
         )
 
         channel_messages = [
             discord_message_to_message(message)
-            async for message in thread.history(limit=MAX_THREAD_MESSAGES)
+            async for message in channel.history(limit=MAX_THREAD_MESSAGES)
         ]
         channel_messages = [x for x in channel_messages if x is not None]
         channel_messages.reverse()
 
         # generate the response
-        async with thread.typing():
+        async with channel.typing():
             response_data = await generate_completion_response(
                 messages=channel_messages, user=message.author
             )
 
         if is_last_message_stale(
             interaction_message=message,
-            last_message=thread.last_message,
+            last_message=channel.last_message,
             bot_id=client.user.id,
         ):
             # there is another message and its not from us, so ignore this response
@@ -248,7 +251,7 @@ async def on_message(message: DiscordMessage):
 
         # send response
         await process_response(
-            user=message.author, thread=thread, response_data=response_data
+            user=message.author, thread=channel, response_data=response_data
         )
     except Exception as e:
         logger.exception(e)
