@@ -85,7 +85,7 @@ async def generate_completion_response(
         reponse = await loop.run_in_executor(None, lambda: agent_executor.invoke(
             {
                 "input": rendered,
-                "chat_history": render_messages(messages),
+                "chat_history": render_messages(messages[:-1]),
             }
         ))
         reply = reponse["output"]
