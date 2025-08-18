@@ -29,7 +29,7 @@ from src.moderation import (
 from src.utils import split_into_shorter_messages, close_thread, logger
 
 # OpenAI model instance with zero temperature for consistent responses
-model = ChatOpenAI(temperature=0, model=OPENAI_MODEL)
+model = ChatOpenAI(temperature=0.1, model=OPENAI_MODEL)
 
 # Google search wrapper for web search functionality
 gsearch = GoogleSearchAPIWrapper()
