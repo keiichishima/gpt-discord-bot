@@ -82,13 +82,13 @@ async def generate_completion_response(
     try:
         loop = asyncio.get_running_loop()
         rendered = messages[-1].render()
-        reponse = await loop.run_in_executor(None, lambda: agent_executor.invoke(
+        response = await loop.run_in_executor(None, lambda: agent_executor.invoke(
             {
                 "input": rendered,
                 "chat_history": render_messages(messages[:-1]),
             }
         ))
-        reply = reponse["output"]
+        reply = response["output"]
         if reply:
             flagged_str, blocked_str = moderate_message(
                 message=(rendered + reply)[-500:], user=user
