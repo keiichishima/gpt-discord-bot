@@ -125,7 +125,7 @@ MODERATION_VALUES_FOR_FLAGGED = {
 # Bot behavior and Discord limitations configuration
 
 # Message processing delay to handle rapid user messages
-SECONDS_DELAY_RECEIVING_MSG = 2  # Wait 2 seconds to catch multiple consecutive messages
+SECONDS_DELAY_RECEIVING_MSG = 1  # Wait 1 seconds to catch multiple consecutive messages
 
 # Thread management settings
 MAX_THREAD_MESSAGES = 20                    # Maximum messages before closing thread
