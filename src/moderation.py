@@ -31,7 +31,7 @@ def moderate_message(
     # Initialize OpenAI client and send moderation request
     client = openai.OpenAI()
     moderation_response = client.moderations.create(
-        input=message, model="text-moderation-latest"
+        input=message, model="omni-moderation-latest"
     )
     
     # Extract category scores from moderation response
